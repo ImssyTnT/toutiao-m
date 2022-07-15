@@ -14,19 +14,12 @@
     <!-- 头部区域 End -->
 
     <!-- 表单区域 Start -->
-    <van-form @submit="loginFn" class="form">
+    <van-form @submit="loginFn" class="form" ref="loginForm">
       <van-field
         v-model="mobile"
         name="手机号"
         placeholder="请输入手机号"
-        :rules="[
-          {
-            required: true,
-            message: '请输入手机号',
-            pattern:
-              /^(?:(?:\+|00)86)?1(?:(?:3[\d])|(?:4[5-79])|(?:5[0-35-9])|(?:6[5-7])|(?:7[0-8])|(?:8[\d])|(?:9[189]))\d{8}$/
-          }
-        ]"
+        :rules="mobileRules"
       >
         <template #label>
           <span class="toutiao toutiao-shouji"></span>
@@ -37,41 +30,92 @@
         type="text"
         name="验证码"
         placeholder="请输入验证码"
-        :rules="[{ required: true, message: '请输入验证码', pattern: /\d{6}/ }]"
+        :rules="codeRules"
       >
         <template #label>
           <span class="toutiao toutiao-yanzhengma"></span>
         </template>
         <template #right-icon>
-          <van-button round size="mini" class="code-btn">发送验证码</van-button>
+          <van-count-down
+            v-if="isShowCountDown"
+            :time="3 * 1000"
+            @finish="isShowCountDown = false"
+          />
+          <van-button
+            round
+            v-else
+            @click="sendCode"
+            size="mini"
+            class="code-btn"
+            native-type="button"
+            >发送验证码</van-button
+          >
         </template>
       </van-field>
       <div style="margin: 16px">
         <van-button block type="info" native-type="submit">提交</van-button>
       </div>
     </van-form>
-
     <!-- 表单区域 End -->
   </div>
 </template>
 
 <script>
-import { login } from '@/api/user.js'
+import { login, sendCode } from '@/api/user.js'
+import { mobileRules, codeRules } from './rules.js'
 export default {
   name: 'Login',
   data() {
     return {
       mobile: '',
-      code: ''
+      code: '',
+      mobileRules,
+      codeRules,
+      isShowCountDown: false
     }
   },
   methods: {
+    // 返回上一页
     backProPage() {
       this.$router.back()
     },
+    // 登录
     async loginFn() {
-      const res = await login(this.mobile, this.code)
-      console.log(res)
+      this.$toast.loading({
+        message: '正在登陆...',
+        forbidClick: true
+      })
+      try {
+        const res = await login(this.mobile, this.code)
+        this.$store.commit('setUser', res.data.data)
+        this.$router.push('/profile')
+        this.$toast.success('登录成功')
+      } catch (err) {
+        const status = err.response.status
+        let message = '登录错误,请刷新'
+        if (status === 400) {
+          message = err.response.data.message
+        }
+        this.$toast.fail(message)
+      }
+    },
+    // 发送验证码
+    async sendCode() {
+      try {
+        await this.$refs.loginForm.validate('手机号')
+        const res = await sendCode(this.mobile)
+        console.log(res)
+        this.isShowCountDown = true
+      } catch (err) {
+        if (!err.response) {
+          this.$toast.fail(err.message)
+        } else {
+          const status = err.response.status
+          if (status === 404 || status === 429) {
+            this.$toast.fail(err.response.data.message)
+          }
+        }
+      }
     }
   }
 }
