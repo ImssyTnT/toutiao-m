@@ -26,8 +26,8 @@
           <van-image
             width="100px"
             height="100px"
-            v-for="item in articleInfo.cover.images"
-            :key="item"
+            v-for="(item, index) in articleInfo.cover.images"
+            :key="index"
             :src="item"
           />
         </div>

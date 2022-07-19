@@ -16,14 +16,26 @@
         <ArticleList :id="item.id"></ArticleList>
       </van-tab>
       <span class="toutiao toutiao-gengduo" @click="showPopup"></span>
-      <EditChannelPopup ref="popup" :myChannels="myChannels"></EditChannelPopup>
+      <EditChannelPopup
+        ref="popup"
+        :myChannels="myChannels"
+        @delMyChannel="delMyChannel"
+        @changeActive="changeActive"
+        @addChannel="addChannel"
+      ></EditChannelPopup>
     </van-tabs>
     <!-- tabs选项卡 End -->
   </div>
 </template>
 
 <script>
-import { getMyChannels } from '@/api'
+import {
+  getMyChannels,
+  getMyChannelsToLocal,
+  setMyChannelsToLocal,
+  delMyChannel,
+  addChannel
+} from '@/api'
 import ArticleList from './component/ArticleList.vue'
 import EditChannelPopup from './component/EditChannelPopup.vue'
 export default {
@@ -38,18 +50,69 @@ export default {
     this.getMyChannels()
   },
   methods: {
+    // 获取频道列表
     async getMyChannels() {
       try {
-        const {
-          data: { data }
-        } = await getMyChannels()
-        this.myChannels = data.channels
+        if (!this.isLogin) {
+          const myChannels = getMyChannelsToLocal()
+          if (myChannels) {
+            this.myChannels = myChannels
+          } else {
+            const {
+              data: { data }
+            } = await getMyChannels()
+            this.myChannels = data.channels
+          }
+        } else {
+          const {
+            data: { data }
+          } = await getMyChannels()
+          this.myChannels = data.channels
+        }
       } catch (error) {
         this.$toast.fail('请重新获取频道列表')
       }
     },
+    // 显示弹出层
     showPopup() {
       this.$refs.popup.isShow = true
+    },
+    // 删除我的频道
+    async delMyChannel(id) {
+      this.myChannels = this.myChannels.filter((item) => item.id !== id)
+      if (!this.isLogin) {
+        setMyChannelsToLocal(this.myChannels)
+      } else {
+        try {
+          await delMyChannel(id)
+        } catch (error) {
+          return this.$toast.fail('删除用户频道失败')
+        }
+      }
+      this.$toast.success('删除用户频道成功')
+    },
+    // 更改active 频道高亮
+    changeActive(index) {
+      this.active = index
+    },
+    // 添加频道
+    async addChannel(channel) {
+      this.myChannels.push(channel)
+      if (!this.isLogin) {
+        setMyChannelsToLocal(this.myChannels)
+      } else {
+        try {
+          await addChannel(channel.id, this.myChannels.length)
+        } catch (error) {
+          return this.$toast.fail('添加用户频道失败')
+        }
+      }
+      this.$toast.success('添加用户频道成功')
+    }
+  },
+  computed: {
+    isLogin() {
+      return !!this.$store.state.user.token
     }
   },
   components: {

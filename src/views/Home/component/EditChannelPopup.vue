@@ -11,17 +11,25 @@
       <div class="my-channel">
         <!-- title -->
         <van-cell title="我的频道" center :border="false">
-          <van-button size="small" round class="edit-btn">编辑</van-button>
+          <van-button
+            size="small"
+            round
+            class="edit-btn"
+            @click="isEdit = !isEdit"
+            >{{ isEdit ? '完成' : '编辑' }}</van-button
+          >
         </van-cell>
         <!-- 我的频道内容 -->
         <van-grid :border="false" gutter="10">
           <van-grid-item
-            v-for="item in myChannels"
+            v-for="(item, index) in myChannels"
             :key="item.id"
             :text="item.name"
+            :class="{ 'active-channel': item.name === '推荐' }"
+            @click="onClickMyChannel(item, index)"
           >
             <template #icon>
-              <van-icon name="close" />
+              <van-icon v-show="isEdit && item.name !== '推荐'" name="close" />
             </template>
           </van-grid-item>
         </van-grid>
@@ -36,6 +44,7 @@
             v-for="item in recommendChannels"
             :key="item.id"
             :text="item.name"
+            @click="addChannel(item)"
           >
             <template #icon>
               <van-icon name="plus" />
@@ -52,8 +61,9 @@ import { getAllChannels } from '@/api'
 export default {
   data() {
     return {
-      isShow: true,
-      allChannels: []
+      isShow: false,
+      allChannels: [],
+      isEdit: false
     }
   },
   created() {
@@ -66,12 +76,29 @@ export default {
     }
   },
   methods: {
+    // 获取所有频道
     async getAllChannels() {
       const { data } = await getAllChannels()
       this.allChannels = data.data.channels
+    },
+    // 点击我的频道
+    onClickMyChannel(channel, index) {
+      if (this.isEdit && channel.name !== '推荐') {
+        return this.$emit('delMyChannel', channel.id)
+      }
+      if (!this.isEdit) {
+        this.isShow = false
+        this.$emit('changeActive', index)
+      }
+    },
+    addChannel(channel) {
+      if (this.isEdit) {
+        this.$emit('addChannel', { ...channel })
+      }
     }
   },
   computed: {
+    // 通过计算获取推荐频道
     recommendChannels() {
       return this.allChannels.filter((item) => {
         return !this.myChannels.find((i) => i.id === item.id)
@@ -82,6 +109,12 @@ export default {
 </script>
 
 <style lang="less" scoped>
+// 推荐频道 高亮
+.active-channel {
+  :deep(.van-grid-item__text) {
+    color: #ff69b4;
+  }
+}
 .popup-main {
   padding-top: 100px;
   // 编辑按钮
