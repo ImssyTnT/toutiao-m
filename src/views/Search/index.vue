@@ -13,7 +13,9 @@
     <component
       :is="componentSearch"
       :keywords="keywords"
+      :searchInfo="searchInfo"
       @getSearchSuggetion="getSearchSuggetion"
+      @delSearchHistory="delSearchHistory"
     ></component>
   </form>
 </template>
@@ -26,13 +28,19 @@ export default {
   data() {
     return {
       keywords: '',
-      isShowSearchResult: false
+      isShowSearchResult: false,
+      searchInfo: []
     }
+  },
+  created() {
+    this.searchInfo = this.$store.state.search
   },
   methods: {
     // 搜索框回车事件
     onSearch() {
       this.isShowSearchResult = true
+      this.searchInfo.push(this.keywords)
+      this.$store.commit('setSearch', this.searchInfo)
     },
     // 点击取消按钮返回上一页
     backPrePage() {
@@ -46,6 +54,16 @@ export default {
     getSearchSuggetion(str) {
       this.keywords = str
       this.onSearch()
+    },
+    // 删除搜索历史
+    delSearchHistory(index) {
+      if (index === -1) {
+        this.searchInfo = []
+      } else {
+        this.searchInfo.splice(index, 1)
+      }
+
+      this.$store.commit('setSearch', this.searchInfo)
     }
   },
   computed: {
