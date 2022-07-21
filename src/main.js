@@ -13,8 +13,9 @@ import 'vant/lib/index.css'
 // 引入flexble
 import 'amfe-flexible/index.min.js'
 
+// 引入文章详情css
+import '../node_modules/github-markdown-css/github-markdown.css'
 Vue.use(Vant)
-
 Vue.config.productionTip = false
 
 new Vue({

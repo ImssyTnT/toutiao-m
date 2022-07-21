@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div @click="goDetail(articleInfo.art_id)">
     <!-- 无图片 -->
     <van-cell
       v-if="articleInfo.cover.type === 0"
@@ -52,6 +52,14 @@ export default {
       const art = this.articleInfo
       const time = dayjs(art.pubdate).fromNow()
       return `${art.aut_name} ${art.comm_count}评论 ${time}`
+    }
+  },
+  methods: {
+    goDetail(id) {
+      this.$router.push({
+        path: '/detail',
+        query: { id }
+      })
     }
   }
 }

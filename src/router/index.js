@@ -16,7 +16,8 @@ const routes = [
       { path: 'profile', component: () => import('@/views/Profile') }
     ]
   },
-  { path: '/search', component: () => import('@/views/Search') }
+  { path: '/search', component: () => import('@/views/Search') },
+  { path: '/detail', component: () => import('@/views/Detail') }
 ]
 
 const router = new VueRouter({
