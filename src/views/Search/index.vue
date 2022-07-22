@@ -39,7 +39,8 @@ export default {
     // 搜索框回车事件
     onSearch() {
       this.isShowSearchResult = true
-      this.searchInfo.push(this.keywords)
+      this.searchInfo.unshift(this.keywords)
+      this.searchInfo = [...new Set(this.searchInfo)]
       this.$store.commit('setSearch', this.searchInfo)
     },
     // 点击取消按钮返回上一页
