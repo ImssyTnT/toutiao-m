@@ -51,11 +51,24 @@
     <!-- 作者区域 End -->
     <!-- 主体区域 Start -->
     <div class="main mark-down">
-      <DetailContent
-        :detailInfo="detailInfoContent"
-        ref="contentRef"
-      ></DetailContent>
-      <van-divider>正文结束</van-divider>
+      <van-list
+        v-model="loading"
+        :finished="finished"
+        finished-text="没有更多了"
+        @load="onLoad"
+        offset="100"
+      >
+        <DetailContent
+          :detailInfo="detailInfoContent"
+          ref="contentRef"
+        ></DetailContent>
+        <van-divider>正文结束</van-divider>
+        <Comment
+          v-for="(item, index) in comments"
+          :key="index"
+          :item="item"
+        ></Comment>
+      </van-list>
     </div>
     <!-- 主体区域 End -->
 
@@ -80,16 +93,25 @@ import {
   artLikings,
   unArtLikings,
   collections,
-  unCollections
+  unCollections,
+  getComments
 } from '@/api'
 import { ImagePreview } from 'vant'
 import dayjs from '@/utils/dayjs'
+import Comment from './components/Comment.vue'
 export default {
+  name: 'detail',
   data() {
     return {
       detailInfo: {},
       detailInfoContent: '',
-      isShow: false
+      isShow: false,
+      loading: true,
+      finished: false,
+      comments: [],
+
+      preID: '',
+      endID: ''
     }
   },
   created() {
@@ -101,7 +123,8 @@ export default {
   components: {
     NavBar,
     DetailContent,
-    Tabbar
+    Tabbar,
+    Comment
   },
   methods: {
     // 获取文章数据
@@ -111,6 +134,7 @@ export default {
       console.log(data.data)
       this.detailInfo = data.data
       this.detailInfoContent = data.data.content
+      this.loading = false
     },
     // 图片预览功能
     previewImg() {
@@ -192,6 +216,33 @@ export default {
         } finally {
           this.getDetailContent()
         }
+      }
+    },
+    // 进度条到达底部加载评论
+    async onLoad() {
+      try {
+        if (this.preID === null) {
+          return (this.finished = true)
+        }
+        if (this.preID === '') {
+          const { data } = await getComments('a', this.detailInfo.art_id)
+          this.preID = data.data.last_id
+          console.log(data)
+          this.comments = data.data.results
+        } else {
+          const { data } = await getComments(
+            'a',
+            this.detailInfo.art_id,
+            this.preID
+          )
+          console.log(data)
+          this.preID = data.data.last_id
+          this.comments.push(...data.data.results)
+        }
+      } catch (error) {
+        this.$toast.fail('获取评论失败')
+      } finally {
+        this.loading = false
       }
     }
   },

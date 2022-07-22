@@ -2,7 +2,27 @@
   <div>
     <div class="art-bottom">
       <div class="btn-left">
-        <van-button type="default" round size="mini">写评论</van-button>
+        <van-button type="default" round size="mini" @click="showPopup = true"
+          >写评论</van-button
+        >
+        <van-popup
+          v-model="showPopup"
+          position="bottom"
+          :style="{ height: '20%' }"
+        >
+          <van-form @submit="onSubmit">
+            <van-field
+              v-model="message"
+              rows="2"
+              autosize
+              type="textarea"
+              maxlength="50"
+              placeholder="请输入留言"
+              show-word-limit
+            />
+            <van-button plain type="info" native-type="submit">发布</van-button>
+          </van-form>
+        </van-popup>
       </div>
       <div class="btn-right">
         <van-badge :content="detailInfo.comm_count">
@@ -32,10 +52,13 @@
 </template>
 
 <script>
+import { postComment } from '@/api'
 export default {
   data() {
     return {
       showShare: false,
+      showPopup: false,
+      message: '',
       options: [
         { name: '微信', icon: 'wechat' },
         { name: '微博', icon: 'weibo' },
@@ -64,6 +87,14 @@ export default {
     // 分享面板
     onSelect(option) {
       this.showShare = false
+    },
+    // 发布评论
+    async onSubmit() {
+      console.log(this.detailInfo)
+      const res = await postComment(this.detailInfo.art_id, this.message)
+      console.log(res)
+      this.showPopup = false
+      this.message = ''
     }
   }
 }
@@ -98,6 +129,29 @@ export default {
   }
   .van-icon-star {
     color: yellow;
+  }
+  .van-popup--bottom {
+    padding: 32px 0 32px 32px;
+    box-sizing: border-box;
+    border: 0;
+    .van-form {
+      display: flex;
+      align-items: center;
+      .van-button--info {
+        border: 1px solid #fff;
+        padding: 0;
+      }
+      .van-cell {
+        background-color: #f5f7f9;
+      }
+      .van-button {
+        width: 122px;
+        height: 88px;
+        .van-button__text {
+          color: #6ba3d8;
+        }
+      }
+    }
   }
 }
 </style>
