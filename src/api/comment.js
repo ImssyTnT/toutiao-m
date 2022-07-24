@@ -23,3 +23,19 @@ export const postComment = (target, content, id) => {
     }
   })
 }
+
+export const commentLikings = (target) => {
+  return request({
+    method: 'POST',
+    url: '/v1_0/comment/likings',
+    data: {
+      target
+    }
+  })
+}
+export const unCommentLikings = (target) => {
+  return request({
+    method: 'DELETE',
+    url: `/v1_0/comment/likings/${target}`
+  })
+}

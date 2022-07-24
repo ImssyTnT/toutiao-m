@@ -51,23 +51,82 @@
     <!-- 作者区域 End -->
     <!-- 主体区域 Start -->
     <div class="main mark-down">
+      <!-- 文章内容区域 -->
+      <DetailContent
+        :detailInfo="detailInfoContent"
+        ref="contentRef"
+      ></DetailContent>
+      <van-divider>正文结束</van-divider>
       <van-list
         v-model="loading"
         :finished="finished"
         finished-text="没有更多了"
-        @load="onLoad"
+        @load="onLoad('a', detailInfo.art_id)"
         offset="100"
+        error-text="加载失败,请点击重新加载"
+        v-if="commentShow"
       >
-        <DetailContent
-          :detailInfo="detailInfoContent"
-          ref="contentRef"
-        ></DetailContent>
-        <van-divider>正文结束</van-divider>
+        <!-- 评论区域 -->
         <Comment
           v-for="(item, index) in comments"
           :key="index"
           :item="item"
+          @clickReply="clickReply"
         ></Comment>
+        <!-- 评论弹出层 -->
+        <van-popup
+          v-model="showPopup"
+          position="bottom"
+          :style="{ height: '100%' }"
+        >
+          <van-nav-bar title="标题" left-arrow @click-left="backPrePage" />
+          <div class="popUp">
+            <Comment :item="commentInfo"></Comment>
+            <van-cell title="全部回复" />
+            <van-list
+              v-model="loading"
+              :finished="finisheds"
+              finished-text="没有更多了"
+              @load="onLoad('c', commentInfo.com_id)"
+              offset="600"
+              error-text="加载失败,请点击重新加载"
+            >
+              <Comment
+                v-for="(item, index) in commentsInComments"
+                :key="index"
+                :item="item"
+              ></Comment>
+            </van-list>
+          </div>
+          <div class="floor-btn">
+            <van-button round type="default" @click="show = true"
+              >评论</van-button
+            >
+            <!-- 弹出层 -->
+            <div class="popup">
+              <van-popup
+                v-model="show"
+                position="bottom"
+                :style="{ height: '20%' }"
+              >
+                <van-form @submit="onSubmit">
+                  <van-field
+                    v-model="message"
+                    rows="2"
+                    autosize
+                    type="textarea"
+                    maxlength="50"
+                    placeholder="请输入留言"
+                    show-word-limit
+                  />
+                  <van-button plain type="info" native-type="submit"
+                    >发布</van-button
+                  >
+                </van-form>
+              </van-popup>
+            </div>
+          </div>
+        </van-popup>
       </van-list>
     </div>
     <!-- 主体区域 End -->
@@ -77,6 +136,7 @@
       :detailInfo="detailInfo"
       @onClickLikings="onClickLikings"
       @onClickCollections="onClickCollections"
+      @reload="reload"
     ></Tabbar>
     <!-- 底部评论栏 End -->
   </div>
@@ -94,7 +154,8 @@ import {
   unArtLikings,
   collections,
   unCollections,
-  getComments
+  getComments,
+  postComment
 } from '@/api'
 import { ImagePreview } from 'vant'
 import dayjs from '@/utils/dayjs'
@@ -108,10 +169,20 @@ export default {
       isShow: false,
       loading: true,
       finished: false,
+      showPopup: false,
       comments: [],
+      error: false,
+      finisheds: false,
+
+      show: false,
+      message: '',
 
       preID: '',
-      endID: ''
+      endID: '',
+
+      commentInfo: {},
+      commentsInComments: [],
+      commentShow: true
     }
   },
   created() {
@@ -184,7 +255,7 @@ export default {
         } catch (error) {
           this.$toast.fail('取消点赞失败')
         } finally {
-          // this.getDetailContent()
+          this.getDetailContent()
           this.detailInfo.attitude = 0
         }
       } else {
@@ -193,7 +264,7 @@ export default {
         } catch (error) {
           this.$toast.fail('点赞失败')
         } finally {
-          // this.getDetailContent()
+          this.getDetailContent()
           this.detailInfo.attitude = 1
         }
       }
@@ -219,30 +290,78 @@ export default {
       }
     },
     // 进度条到达底部加载评论
-    async onLoad() {
+    async onLoad(type, id) {
+      await this.getComments(type, id)
+    },
+    // 加载评论
+    async getComments(type, id) {
       try {
-        if (this.preID === null) {
-          return (this.finished = true)
-        }
         if (this.preID === '') {
-          const { data } = await getComments('a', this.detailInfo.art_id)
+          const { data } = await getComments(type, id)
           this.preID = data.data.last_id
-          console.log(data)
-          this.comments = data.data.results
+          if (type === 'a') {
+            this.comments = data.data.results
+          } else if (type === 'c') {
+            this.commentsInComments = data.data.results
+          }
         } else {
-          const { data } = await getComments(
-            'a',
-            this.detailInfo.art_id,
-            this.preID
-          )
-          console.log(data)
+          const { data } = await getComments(type, id, this.preID)
           this.preID = data.data.last_id
-          this.comments.push(...data.data.results)
+          if (type === 'a') {
+            this.comments.push(...data.data.results)
+          } else {
+            this.commentsInComments.push(...data.data.results)
+          }
+        }
+        if (this.preID === null) {
+          if (type === 'a') {
+            return (this.finished = true)
+          } else {
+            return (this.finisheds = true)
+          }
         }
       } catch (error) {
-        this.$toast.fail('获取评论失败')
+        this.error = true
       } finally {
         this.loading = false
+      }
+    },
+    backPrePage() {
+      this.showPopup = false
+      this.commentsInComments = []
+    },
+    // 评论弹出层
+    clickReply() {
+      this.preID = ''
+      this.showPopup = true
+      this.finisheds = false
+      this.commentInfo = this.$store.state.comment
+    },
+    // 重载评论页面
+    reload(type = 'a', id = this.detailInfo.art_id) {
+      this.preID = ''
+      this.getComments(type, id)
+    },
+    // 发布评论
+    async onSubmit() {
+      try {
+        this.$toast.loading({
+          message: '加载中...',
+          forbidClick: true
+        })
+        await postComment(
+          this.commentInfo.com_id,
+          this.message,
+          this.detailInfo.art_id
+        )
+        this.message = ''
+        this.show = false
+        this.reload('c', this.commentInfo.com_id)
+        this.$toast.success('评论成功')
+      } catch (error) {
+        this.$toast.fail('回复评论失败')
+      } finally {
+        this.$toast.clear()
       }
     }
   },
@@ -307,5 +426,59 @@ export default {
 .main {
   padding: 55px 32px;
   padding-bottom: 88px;
+}
+.popUp {
+  padding: 0 32px;
+  .van-cell {
+    position: unset;
+    padding: 20px 0;
+    border-bottom: 1px solid #ebedf0;
+    .van-cell__title {
+      font-size: 28px;
+    }
+  }
+}
+.floor-btn {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 101px;
+  width: 100%;
+  background-color: #ff69b4;
+  .van-button {
+    width: 640px;
+    height: 80px;
+  }
+}
+.popup {
+  .van-popup--bottom {
+    padding: 32px 0 32px 32px;
+    box-sizing: border-box;
+    border: 0;
+    .van-form {
+      display: flex;
+      align-items: center;
+      .van-button--info {
+        border: 1px solid #fff;
+        padding: 0;
+      }
+      .van-cell {
+        background-color: #f5f7f9;
+      }
+      .van-button {
+        width: 122px;
+        height: 88px;
+        .van-button__text {
+          color: #6ba3d8;
+        }
+      }
+    }
+  }
+}
+.van-nav-bar {
+  z-index: 0;
 }
 </style>

@@ -6,7 +6,8 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     user: getToken() || {},
-    search: getSearch() || []
+    search: getSearch() || [],
+    comment: {}
   },
   mutations: {
     setUser(state, payload) {
@@ -16,6 +17,9 @@ export default new Vuex.Store({
     setSearch(state, searchInfo) {
       state.search = searchInfo
       setSearch(searchInfo)
+    },
+    setComment(state, commentInfo) {
+      state.comment = commentInfo
     }
   }
 })

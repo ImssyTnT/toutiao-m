@@ -128,7 +128,9 @@ export default {
           this.userInfo = data
         }
       } catch (error) {
-        this.$toast.fail('请重新登录!')
+        if (error.response.status === 401) {
+          this.$toast.fail('请重新登录!')
+        }
       }
     }
   }

@@ -6,7 +6,11 @@
     <div class="content">
       <div class="title">
         <span class="user-name">{{ item.aut_name }}</span>
-        <div class="title-btn">
+        <div
+          class="title-btn"
+          @click="commentLike(item)"
+          :class="item.is_liking ? 'islike' : ''"
+        >
           <van-icon name="good-job-o" />
           <span class="good">赞</span>
         </div>
@@ -17,7 +21,7 @@
         </p>
         <div class="floor">
           <span class="ago">{{ time }}</span>
-          <van-button type="default" round size="mini"
+          <van-button type="default" round size="mini" @click="showPopup(item)"
             >回复{{ item.reply_count }}</van-button
           >
         </div>
@@ -28,7 +32,11 @@
 
 <script>
 import dayjs from '@/utils/dayjs'
+import { commentLikings, unCommentLikings } from '@/api'
 export default {
+  data() {
+    return {}
+  },
   props: {
     item: {
       type: Object,
@@ -39,6 +47,31 @@ export default {
     time() {
       const oldtiem = dayjs(this.item.pubdate).fromNow()
       return oldtiem
+    }
+  },
+  methods: {
+    // 评论点赞
+    async commentLike(item) {
+      try {
+        if (item.is_liking) {
+          await unCommentLikings(item.com_id)
+        } else {
+          await commentLikings(item.com_id)
+        }
+      } catch (error) {
+        if (item.is_liking) {
+          this.$toast.fail('取消点赞失败')
+        } else {
+          this.$toast.fail('点赞失败')
+        }
+      } finally {
+        item.is_liking = !item.is_liking
+      }
+    },
+    // 评论回复
+    showPopup(item) {
+      this.$store.commit('setComment', item)
+      this.$emit('clickReply')
     }
   }
 }
@@ -94,6 +127,9 @@ export default {
         }
       }
     }
+  }
+  .islike {
+    color: red;
   }
 }
 </style>
