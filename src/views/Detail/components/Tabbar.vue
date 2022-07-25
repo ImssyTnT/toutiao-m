@@ -97,10 +97,23 @@ export default {
     },
     // 发布评论
     async onSubmit() {
-      await postComment(this.detailInfo.art_id, this.message)
-      this.message = ''
-      this.showPopup = false
-      this.$emit('reload')
+      this.$toast.loading({
+        message: '加载中...',
+        forbidClick: true
+      })
+      try {
+        await postComment(this.detailInfo.art_id, this.message)
+        this.showPopup = false
+        this.$emit('reload')
+      } catch (error) {
+        if (error.response.status === 401) {
+          return this.$toast.fail('请重新登录')
+        }
+        this.$toast.fail('发布评论失败')
+      } finally {
+        this.$toast.clear()
+        this.message = ''
+      }
     },
     isShow() {
       this.showPopup = true

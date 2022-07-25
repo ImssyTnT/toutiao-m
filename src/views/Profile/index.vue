@@ -23,7 +23,9 @@
           <!-- 编辑按钮 -->
           <van-col span="12">
             <van-row type="flex" justify="end" align="center" class="user-btn">
-              <van-button type="default" round size="mini">编辑资料</van-button>
+              <van-button type="default" round size="mini" @click="goEdit"
+                >编辑资料</van-button
+              >
             </van-row>
           </van-col>
         </van-row>
@@ -132,6 +134,12 @@ export default {
           this.$toast.fail('请重新登录!')
         }
       }
+    },
+    // 编辑资料
+    goEdit() {
+      this.$router.push({
+        path: '/user'
+      })
     }
   }
 }

@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div class="body">
     <!-- 头部导航 Start -->
-    <NavBar></NavBar>
+    <NavBar title="黑马头条"></NavBar>
     <!-- 头部导航 End -->
     <!-- 作者区域 Start -->
     <div class="author">
@@ -79,7 +79,15 @@
           position="bottom"
           :style="{ height: '100%' }"
         >
-          <van-nav-bar title="标题" left-arrow @click-left="backPrePage" />
+          <van-nav-bar
+            :title="
+              commentInfo.reply_count > 0
+                ? `${commentInfo.reply_count}条回复`
+                : '暂无回复'
+            "
+            left-arrow
+            @click-left="backPrePage"
+          />
           <div class="popUp">
             <Comment :item="commentInfo"></Comment>
             <van-cell title="全部回复" />
@@ -178,7 +186,6 @@ export default {
       message: '',
 
       preID: '',
-      endID: '',
 
       commentInfo: {},
       commentsInComments: [],
@@ -202,7 +209,6 @@ export default {
     async getDetailContent() {
       const id = this.$route.query.id
       const { data } = await getDetailContent(id)
-      console.log(data.data)
       this.detailInfo = data.data
       this.detailInfoContent = data.data.content
       this.loading = false
@@ -231,6 +237,9 @@ export default {
         try {
           await userFollowings(id)
         } catch (error) {
+          if (error.response.status === 401) {
+            return this.$toast.fail('请重新登录')
+          }
           this.$toast.fail('关注失败')
         } finally {
           this.getDetailContent()
@@ -240,6 +249,9 @@ export default {
         try {
           await unFollowings(id)
         } catch (error) {
+          if (error.response.status === 401) {
+            return this.$toast.fail('请重新登录')
+          }
           this.$toast.fail('取消关注失败')
         } finally {
           this.getDetailContent()
@@ -252,20 +264,26 @@ export default {
       if (this.detailInfo.attitude === 1) {
         try {
           await unArtLikings(this.detailInfo.art_id)
+          this.detailInfo.attitude = 0
         } catch (error) {
+          if (error.response.status === 401) {
+            return this.$toast.fail('请重新登录')
+          }
           this.$toast.fail('取消点赞失败')
         } finally {
           this.getDetailContent()
-          this.detailInfo.attitude = 0
         }
       } else {
         try {
           await artLikings(this.detailInfo.art_id)
+          this.detailInfo.attitude = 1
         } catch (error) {
+          if (error.response.status === 401) {
+            return this.$toast.fail('请重新登录')
+          }
           this.$toast.fail('点赞失败')
         } finally {
           this.getDetailContent()
-          this.detailInfo.attitude = 1
         }
       }
     },
@@ -275,6 +293,9 @@ export default {
         try {
           await unCollections(this.detailInfo.art_id)
         } catch (error) {
+          if (error.response.status === 401) {
+            return this.$toast.fail('请重新登录')
+          }
           this.$toast.fail('取消收藏失败')
         } finally {
           this.getDetailContent()
@@ -283,6 +304,9 @@ export default {
         try {
           await collections(this.detailInfo.art_id)
         } catch (error) {
+          if (error.response.status === 401) {
+            return this.$toast.fail('请重新登录')
+          }
           this.$toast.fail('收藏文章失败')
         } finally {
           this.getDetailContent()
@@ -344,24 +368,28 @@ export default {
     },
     // 发布评论
     async onSubmit() {
+      this.$toast.loading({
+        message: '加载中...',
+        forbidClick: true
+      })
       try {
-        this.$toast.loading({
-          message: '加载中...',
-          forbidClick: true
-        })
         await postComment(
           this.commentInfo.com_id,
           this.message,
           this.detailInfo.art_id
         )
-        this.message = ''
+
         this.show = false
         this.reload('c', this.commentInfo.com_id)
         this.$toast.success('评论成功')
       } catch (error) {
+        if (error.response.status === 401) {
+          return this.$toast.fail('请重新登录')
+        }
         this.$toast.fail('回复评论失败')
       } finally {
         this.$toast.clear()
+        this.message = ''
       }
     }
   },
@@ -375,6 +403,9 @@ export default {
 </script>
 
 <style lang="less" scoped>
+.body {
+  background-color: #fff;
+}
 // 作者区域
 .author {
   // 标题区域

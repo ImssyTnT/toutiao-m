@@ -48,6 +48,7 @@ export default {
   },
   created() {
     this.getMyChannels()
+    document.body.style.backgroundColor = '#fff'
   },
   methods: {
     // 获取频道列表

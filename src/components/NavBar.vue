@@ -1,11 +1,17 @@
 <template>
   <div>
-    <van-nav-bar title="黑马头条" left-arrow @click-left="backPrePage" />
+    <van-nav-bar :title="title" left-arrow @click-left="backPrePage" />
   </div>
 </template>
 
 <script>
 export default {
+  props: {
+    title: {
+      type: String,
+      required: true
+    }
+  },
   methods: {
     // 返回上一页
     backPrePage() {
